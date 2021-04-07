@@ -22,6 +22,8 @@ public class TipsController {
 	@Autowired
 	TipsService service;
 	
+	@Autowired
+	UsersService userService;
 	
 	@RequestMapping(value = "/{id}", method = RequestMethod.GET,
             produces = MediaType.APPLICATION_JSON_VALUE)
@@ -52,5 +54,10 @@ public class TipsController {
             produces = MediaType.APPLICATION_JSON_VALUE)
 	public List<Tips> getLast(@PathVariable int limit) {
 		return service.findLastCreated(limit);
+	}
+	@RequestMapping(value = "/like", method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE)
+	public Tips like(@RequestBody Tips tip, Authentication authentication) {
+		return this.service.like(userService.getById(authentication.getName()), tip);
 	}
 }

@@ -61,11 +61,7 @@ public class Users implements Serializable {
 	
 	@LazyCollection(LazyCollectionOption.FALSE)
 	@Column(name = "liked")
-	@ManyToMany()
-	@JoinTable(
-			  name = "users_tips", 
-			  joinColumns = @JoinColumn(name = "email"), 
-			  inverseJoinColumns = @JoinColumn(name = "id"))
+	@ManyToMany(mappedBy = "likes")
 	private List<Tips> likedTips;
 	
 	@LazyCollection(LazyCollectionOption.FALSE)
