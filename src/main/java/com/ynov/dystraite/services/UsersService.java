@@ -107,17 +107,6 @@ public class UsersService implements UserDetailsService {
 		newUser.setPassword(oldPassword);
 		return usersRepo.save(newUser);
 	}
-	public Tips like(Users user, Tips tip) {
-		Optional<Tips> likedTip = user.getLikedTips().stream().filter(t -> t.getId() == tip.getId()).findFirst();
-		if(likedTip.isPresent()) {
-			user.getLikedTips().remove(likedTip.get());
-		}else {
-			user.getLikedTips().add(tip);
-		}
-		this.usersRepo.save(user);
-		return tip;
-	}
-
 
 	public List<Users> getNearSpeechTherapist(Users util){
 		return usersRepo.findNearest(util.getLatitude(), util.getLongitude());

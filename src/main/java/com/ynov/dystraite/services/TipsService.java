@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.PathVariable;
 
 import com.ynov.dystraite.entities.Tips;
+import com.ynov.dystraite.entities.Users;
 import com.ynov.dystraite.repositories.TipsRepository;
 import com.ynov.dystraite.repositories.UsersRepository;
 
@@ -50,6 +51,21 @@ public class TipsService {
 	}
 	public Tips update(Tips newTip) {
 		return tipsRepo.save(newTip);
+	}
+	
+	public Tips like(Users user, Tips tip) {
+		Optional<Users> opUser = userRepo.findById(user.getId());
+		Optional<Tips> opTip = tipsRepo.findById(tip.getId());
+
+		if(opUser.isPresent() && opTip.isPresent()) {
+			if(opTip.get().getLikes().contains(opUser.get())) {
+				opTip.get().getLikes().remove(opUser.get());
+			}else {
+				opTip.get().getLikes().add(opUser.get());
+			}
+			this.tipsRepo.save(opTip.get());
+		}
+		return tip;
 	}
 	
 	public List<Tips> findLastCreated(int limit){
