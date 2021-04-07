@@ -65,7 +65,7 @@ public class Users implements Serializable {
 	private List<Tips> likedTips;
 	
 	@LazyCollection(LazyCollectionOption.FALSE)
-	@OneToMany(mappedBy="owner", cascade = CascadeType.ALL)
+	@OneToMany(mappedBy="owner")
     private List<Tips> tips;
 	
 	@OneToOne
