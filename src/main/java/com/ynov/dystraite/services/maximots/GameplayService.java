@@ -1,14 +1,21 @@
 package com.ynov.dystraite.services.maximots;
 
+import com.ynov.dystraite.entities.Users;
 import com.ynov.dystraite.entities.maximots.Category;
 import com.ynov.dystraite.entities.maximots.Theme;
 import com.ynov.dystraite.entities.maximots.Word;
 import com.ynov.dystraite.enums.maximots.Direction;
 import com.ynov.dystraite.enums.maximots.Sens;
+import com.ynov.dystraite.models.maximots.SortieGameplay;
+import com.ynov.dystraite.services.UsersService;
 import org.apache.commons.lang3.SerializationUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -22,18 +29,24 @@ public class GameplayService {
     @Autowired
     CategoryService categoryService;
 
+    @Autowired
+    UsersService usersService;
+
     private final Random rand = new Random();
 
     char[][] board;
 
-    public List<Theme> createBoard(List<Long> categoriesId, int boardSize) {
+    public SortieGameplay createBoard(List<Long> categoriesId, int boardSize, Authentication authentication) throws NoSuchAlgorithmException {
+
+        Users user = usersService.getById(authentication.getName());
+
+        List<String> wordsInsertedHash = new ArrayList<>();
+        final MessageDigest digest = MessageDigest.getInstance("SHA-256");
 
         List<Category> categories = categoryService.getByIdIn(categoriesId);
-
         List<Theme> themeList = themeService.getByCategories(categories);
-
+        //choisi un theme dans la liste de themes envoyés
         Theme theme = themeList.get(rand.nextInt(themeList.size()));
-
         List<Word> wordList = theme.getWords();
 
         this.board = new char[boardSize][boardSize];
@@ -50,24 +63,44 @@ public class GameplayService {
                     mot = new StringBuilder(mot).reverse().toString();
                 }
 
-                insertWord(sens, mot);
+                boolean isInserted = insertWord(sens, mot);
+                if (isInserted){
+                    final byte[] hashbytes = digest.digest(mot.getBytes(StandardCharsets.UTF_8));
+                    wordsInsertedHash.add(bytesToHex(hashbytes));
+                }
+            }
+        }
+
+        ArrayList<Character> finalBoard = new ArrayList<>();
+        for (int i = 0; i < this.board.length; i++)
+        {
+            for (int j = 0; j < this.board[i].length; j++)
+            {
+                if (this.board[i][j] == '\0') {
+                    finalBoard.add( (char) (rand.nextInt(26) + 'a') );
+                }else {
+                    finalBoard.add(this.board[i][j]);
+                }
             }
         }
 
         //affichage du plateau
         System.out.println();
-        for (char[] chars : this.board) {
-            for (char c : chars) {
-                if (c != '\0')
+        for (char[] chars : this.board)
+        {
+            for (char c : chars)
+            {
+                if (c != '\0') {
                     System.out.print(c + " ");
-                else
+                }else {
                     System.out.print(". ");
+                }
             }
             System.out.println();
         }
         System.out.println();
 
-        return null;
+        return new SortieGameplay(finalBoard, wordsInsertedHash);
     }
 
     private boolean insertWord(Sens sens, String word){
@@ -342,5 +375,17 @@ public class GameplayService {
         }
 
         return insertWordSuccessfully;
+    }
+
+    private static String bytesToHex(byte[] hash) {
+        StringBuilder hexString = new StringBuilder(2 * hash.length);
+        for (int i = 0; i < hash.length; i++) {
+            String hex = Integer.toHexString(0xff & hash[i]);
+            if(hex.length() == 1) {
+                hexString.append('0');
+            }
+            hexString.append(hex);
+        }
+        return hexString.toString();
     }
 }
