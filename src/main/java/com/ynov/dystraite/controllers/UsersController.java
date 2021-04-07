@@ -37,18 +37,18 @@ public class UsersController {
 	public Users update(@RequestBody Users user) {
 		return service.update(user);
 	}
+	@RequestMapping(value = "", method = RequestMethod.DELETE,
+			produces = MediaType.APPLICATION_JSON_VALUE)
+	public Users delete(Authentication authentication) {
+		Users user = service.getById(authentication.getName());
+		return service.delete(user.getId());
+	}
 	/*@RequestMapping(value = "/{id}", method = RequestMethod.DELETE,
             produces = MediaType.APPLICATION_JSON_VALUE)
 	public Users create(@RequestBody Users user) {
 		user.setPassword(service.encode(user.getPassword()));
 		return service.create(user);
 	}
-	@RequestMapping(value = "/users/{id}", method = RequestMethod.DELETE,
-            produces = MediaType.APPLICATION_JSON_VALUE)
-	public Users delete(@PathVariable int id) {
-		return service.delete(id);
-	}
-	
 	@RequestMapping(value = "/speechtherapists/near/{email}", method = RequestMethod.GET,
             produces = MediaType.APPLICATION_JSON_VALUE)
 	public List<Users> findNearSpeechTherapist(@PathVariable String email) {
