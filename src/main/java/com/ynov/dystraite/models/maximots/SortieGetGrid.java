@@ -8,7 +8,7 @@ import java.util.List;
 
 @AllArgsConstructor
 @Data
-public class SortieGameplay {
+public class SortieGetGrid {
     private ArrayList<Character> grid;
-    private List<String> words;
+    private List<String> wordsHash;
 }
