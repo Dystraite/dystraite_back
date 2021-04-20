@@ -4,9 +4,11 @@ import com.ynov.dystraite.entities.maximots.Grid;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
-import java.util.Set;
+import java.util.List;
 
 @Repository
 public interface GridRepository extends JpaRepository<Grid, Long> {
-    Set<Grid> getByDifficulty(int difficulty);
+    Grid findFirstByDifficultyAndIdNotIn(int difficulty, List<Long> gridList);
+
+    Grid findFirstByDifficulty(int difficulty);
 }

@@ -2,10 +2,15 @@ package com.ynov.dystraite.services.maximots;
 
 import com.ynov.dystraite.entities.Users;
 import com.ynov.dystraite.entities.maximots.Grid;
+import com.ynov.dystraite.entities.maximots.UserGrid;
 import com.ynov.dystraite.enums.maximots.Direction;
 import com.ynov.dystraite.enums.maximots.Sens;
+import com.ynov.dystraite.models.maximots.EntreeGetGrid;
+import com.ynov.dystraite.models.maximots.EntreeVerifyResponse;
 import com.ynov.dystraite.models.maximots.SortieGetGrid;
+import com.ynov.dystraite.models.maximots.SortieVerifyResponse;
 import com.ynov.dystraite.repositories.maximots.GridRepository;
+import com.ynov.dystraite.repositories.maximots.UserGridRepository;
 import com.ynov.dystraite.services.UsersService;
 import org.apache.commons.lang3.SerializationUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,16 +20,17 @@ import org.springframework.stereotype.Service;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Random;
-import java.util.Set;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class GridService {
 
     @Autowired
     GridRepository gridRepository;
+
+    @Autowired
+    UserGridRepository userGridRepository;
 
     @Autowired
     UsersService usersService;
@@ -36,71 +42,119 @@ public class GridService {
     }
 
     private final Random rand = new Random();
-    int boardSize = 10;
+    int boardSize = 8;
     char[][] boardArray = new char[boardSize][boardSize];
 
-    public List<SortieGetGrid> createBoard(int difficulty, Authentication authentication) throws NoSuchAlgorithmException {
+    public SortieGetGrid createBoard(EntreeGetGrid entreeGetGrid, Authentication authentication) throws NoSuchAlgorithmException {
 
         Users user = usersService.getById(authentication.getName());
 
-        List<SortieGetGrid> sortieGetGridList = new ArrayList<>();
+        //récupération des grilles déjà réalisées et en cours de réalisation
+        Set<UserGrid> gridInProgressOrDoneList = userGridRepository.findByUserId(user.getId());
 
-        final MessageDigest digest = MessageDigest.getInstance("SHA-256");
+        List<UserGrid> userGridList = gridInProgressOrDoneList.stream().filter(grid1 -> !grid1.isFinish()).collect(Collectors.toList());
+        if (userGridList.size() > 0){ //S'il y a des grilles en cours de réaliséation
 
-        Set<Grid> gridList = gridRepository.getByDifficulty(difficulty);
-        for (Grid grid : gridList) {
+            UserGrid userGrid = userGridList.get(0); //on récupère la première
 
-            boardArray = new char[boardSize][boardSize];
-            List<String> wordsInsertedHash = new ArrayList<>();
-            List<String> wordList = grid.getWords();
+            Optional<Grid> gridOptional = gridRepository.findById(userGrid.getGrid().getId());
+            if (gridOptional.isPresent()){
 
-            for (String word : wordList) {
+                List<String> wordsFound = Arrays.asList(userGrid.getFoundWords().split(","));
+                List<String> wordsToInsert = this.getWordsToInsert(gridOptional.get(), wordsFound);
 
-                if (word.length() < boardSize) {
-                    Direction direction = Direction.getRandom(); //normal - reverse
-                    Sens sens = Sens.getRandom(); //horiz - vert - diag_b_d - diag_h_d
+                return generateBoard(wordsToInsert, gridOptional.get().getId());
+            }
+        }else{
+            //récupération des liste déjà réalisées
+            List<Long> gridIdDone = gridInProgressOrDoneList.stream()
+                    .filter(UserGrid::isFinish)
+                    .map(userGrid -> userGrid.getGrid().getId())
+                    .collect(Collectors.toList());
 
-                    String mot = word.toUpperCase();
-                    if (direction.equals(Direction.Inverse)) {
-                        mot = new StringBuilder(mot).reverse().toString();
-                    }
-                    boolean isWordInsertedSuccessfully = insertWord(sens, mot);
-
-                    if (isWordInsertedSuccessfully) {
-                        final byte[] hashbytes = digest.digest(word.toUpperCase().getBytes(StandardCharsets.UTF_8));
-                        wordsInsertedHash.add(bytesToHex(hashbytes));
-                    }
-                }
+            Grid grid;
+            if (gridIdDone.size() > 0) {
+                grid = gridRepository.findFirstByDifficultyAndIdNotIn(entreeGetGrid.difficulty, gridIdDone);
+            }else{
+                grid = gridRepository.findFirstByDifficulty(entreeGetGrid.difficulty);
             }
 
-            //affichage du plateau
-            System.out.println();
-            for (int i = 0; i < boardArray.length; i++) {
-                for (int j = 0; j < boardArray[i].length; j++) {
-                    if (boardArray[i][j] != '\0') {
-                        System.out.print(boardArray[i][j] + " ");
-                    } else {
-                        System.out.print(". ");
-                    }
-                }
-                System.out.println();
-            }
+            System.out.println(grid);
 
-            ArrayList<Character> board = new ArrayList<>();
-            for (int i = 0; i < boardArray.length; i++) {
-                for (int j = 0; j < boardArray[i].length; j++) {
-                    if (boardArray[i][j] == '\0') {
-                        board.add((char) (rand.nextInt(26) + 'a'));
-                    } else {
-                        board.add(boardArray[i][j]);
-                    }
-                }
+            if (grid != null){
+                return generateBoard(grid.getWords(), grid.getId());
             }
-
-            sortieGetGridList.add(new SortieGetGrid(board, wordsInsertedHash));
         }
 
-        return sortieGetGridList;
+        return null;
+    }
+
+    private List<String> getWordsToInsert(Grid grid, List<String> wordsFound){
+        //passage des mot en majuscule pour match avec les mots déjà trouvés
+        ListIterator<String> iterator = grid.getWords().listIterator();
+        while (iterator.hasNext())
+        {
+            iterator.set(iterator.next().toUpperCase());
+        }
+
+        //on ajoute tout les mots de la grille
+        // new ArrayList permet de cloner l'objet pour ne pas l'éditer lors du removeAll
+        List<String> wordsToInsert = new ArrayList<>(grid.getWords());
+
+        //on retire les mots déjà trouvés
+        wordsToInsert.removeAll(wordsFound);
+
+        return wordsToInsert;
+    }
+
+    private SortieGetGrid generateBoard(List<String> wordList, long gridId) throws NoSuchAlgorithmException {
+        final MessageDigest digest = MessageDigest.getInstance("SHA-256");
+        boardArray = new char[boardSize][boardSize];
+        List<String> wordsInsertedHash = new ArrayList<>();
+
+        for (String word : wordList) {
+
+            if (word.length() < boardSize) {
+                Direction direction = Direction.Normal; //Direction.getRandom(); //normal - reverse
+                Sens sens = Sens.getRandom(); //horiz - vert - diag_b_d - diag_h_d
+
+                String mot = word;
+                /*if (direction.equals(Direction.Inverse)) {
+                    mot = new StringBuilder(mot).reverse().toString();
+                }*/
+                boolean isWordInsertedSuccessfully = insertWord(sens, mot.toUpperCase());
+
+                if (isWordInsertedSuccessfully) {
+                    final byte[] hashbytes = digest.digest(word.toUpperCase().getBytes(StandardCharsets.UTF_8));
+                    wordsInsertedHash.add(bytesToHex(hashbytes));
+                }
+            }
+        }
+
+        //affichage du plateau
+        System.out.println();
+        for (char[] chars : boardArray) {
+            for (char aChar : chars) {
+                if (aChar != '\0') {
+                    System.out.print(aChar + " ");
+                } else {
+                    System.out.print(". ");
+                }
+            }
+            System.out.println();
+        }
+
+        ArrayList<Character> board = new ArrayList<>();
+        for (char[] chars : boardArray) {
+            for (char aChar : chars) {
+                if (aChar == '\0') {
+                    board.add((char) (rand.nextInt(26) + 'a'));
+                } else {
+                    board.add(aChar);
+                }
+            }
+        }
+        return new SortieGetGrid(board, wordsInsertedHash, gridId);
     }
 
     private boolean insertWord(Sens sens, String word){
@@ -391,5 +445,52 @@ public class GridService {
             hexString.append(hex);
         }
         return hexString.toString();
+    }
+
+    public SortieVerifyResponse verifyResponse(EntreeVerifyResponse entree, Authentication authentication) throws NoSuchAlgorithmException {
+        boolean isFinish = false;
+        UserGrid userGrid = null;
+        SortieGetGrid sortieGetGrid = null;
+
+        Users user = usersService.getById(authentication.getName());
+        //récupération de l'avancement du joueur et de la grille
+        Optional<UserGrid> userGridOpt = userGridRepository.findByUserIdAndGridId(user.getId(), entree.gridId);
+        Optional<Grid> grid = gridRepository.findById(entree.gridId);
+
+        if (grid.isPresent()){
+
+            //si mots déjà trouvé : récupération, si non : création
+            userGrid = userGridOpt.orElseGet(() -> new UserGrid(user, grid.get()));
+
+            List<String> wordsFound = entree.words;
+            if (userGrid.getFoundWords() != null){
+                wordsFound.addAll(new ArrayList<>(Arrays.asList(userGrid.getFoundWords().split(","))));
+            }
+            List<String> wordsToInsert = getWordsToInsert(grid.get(), wordsFound);
+            if (wordsToInsert.size() == 0) { //win
+                isFinish = true;
+            } else {
+                //try create new board
+                sortieGetGrid = generateBoard(wordsToInsert, grid.get().getId());
+                if (sortieGetGrid.getWordsHash().size() < 2) { //si moins de 1 mots dans la grille : win
+                    isFinish = true;
+                } else {
+                    userGrid.setFoundWords(String.join(",", wordsFound));
+                    isFinish = false;
+                }
+            }
+        }
+
+        if (userGrid != null) {
+            if (isFinish) {
+                userGrid.setFinish(true);
+                userGridRepository.save(userGrid);
+                return new SortieVerifyResponse(null, true);
+            } else {
+                userGrid.setFinish(false);
+                userGridRepository.save(userGrid);
+            }
+        }
+        return new SortieVerifyResponse(sortieGetGrid, false);
     }
 }

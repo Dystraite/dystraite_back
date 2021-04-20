@@ -1,7 +1,10 @@
 package com.ynov.dystraite.controllers.maximots;
 
 import com.ynov.dystraite.entities.maximots.Grid;
+import com.ynov.dystraite.models.maximots.EntreeGetGrid;
+import com.ynov.dystraite.models.maximots.EntreeVerifyResponse;
 import com.ynov.dystraite.models.maximots.SortieGetGrid;
+import com.ynov.dystraite.models.maximots.SortieVerifyResponse;
 import com.ynov.dystraite.services.maximots.GridService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
@@ -24,13 +27,13 @@ public class GridController {
     GridService gridService;
 
     @RequestMapping(value = "/getGrid", method = RequestMethod.POST, produces = MediaType.APPLICATION_JSON_VALUE)
-    public List<SortieGetGrid> getGrid(@RequestBody int difficulty, Authentication authentication) throws NoSuchAlgorithmException {
-        return gridService.createBoard(difficulty, authentication);
+    public SortieGetGrid getGrid(@RequestBody EntreeGetGrid entree, Authentication authentication) throws NoSuchAlgorithmException {
+        return gridService.createBoard(entree, authentication);
     }
 
     @RequestMapping(value = "/verifyResponse", method = RequestMethod.POST, produces = MediaType.APPLICATION_JSON_VALUE)
-    public List<SortieGetGrid> verifyResponse(@RequestBody int difficulty, Authentication authentication) throws NoSuchAlgorithmException {
-        return gridService.createBoard(difficulty, authentication);
+    public SortieVerifyResponse verifyResponse(@RequestBody EntreeVerifyResponse entree, Authentication authentication) throws NoSuchAlgorithmException {
+        return gridService.verifyResponse(entree, authentication);
     }
 
     @RequestMapping(value = "/init", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
@@ -50,7 +53,7 @@ public class GridController {
                         "Manteau"
                 )
         );
-        Grid grid = new Grid("Vêtements", words, 10);
+        Grid grid = new Grid("Vêtements", words, 5);
         gridService.populate(grid);
     }
 

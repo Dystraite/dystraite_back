@@ -27,4 +27,8 @@ public class Grid {
     @NonNull
     @Column(name = "difficulty")
     private int difficulty;
+
+    @OneToMany(mappedBy = "grid")
+    @Column(name = "user_grid_id")
+    private List<UserGrid> userGrids;
 }

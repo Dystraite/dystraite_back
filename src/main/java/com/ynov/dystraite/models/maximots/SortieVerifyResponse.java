@@ -8,8 +8,7 @@ import java.util.List;
 
 @AllArgsConstructor
 @Data
-public class SortieGetGrid {
-    private ArrayList<Character> grid;
-    private List<String> wordsHash;
-    private long gridId;
+public class SortieVerifyResponse {
+    private SortieGetGrid sortieGetGrid;
+    private boolean finish;
 }
