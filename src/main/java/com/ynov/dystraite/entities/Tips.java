@@ -43,7 +43,7 @@ public class Tips {
 	
 	@ManyToOne
     @JoinColumn(name="owner_id")
-	@JsonIncludeProperties({"firstname", "profilePicture"})
+	@JsonIncludeProperties({"username", "profilePicture"})
     private Users owner;
 	
 	@Column(name = "likes")
