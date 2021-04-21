@@ -47,8 +47,12 @@ public class Tips {
     private Users owner;
 	
 	@Column(name = "likes")
-	@ManyToMany(mappedBy = "likedTips")
+	@ManyToMany()
 	@JsonIgnore
+	@JoinTable(
+			  name = "users_tips", 
+			  joinColumns = @JoinColumn(name = "id"), 
+			  inverseJoinColumns = @JoinColumn(name = "email"))
 	private List<Users> likes;
 	
 	@LazyCollection(LazyCollectionOption.FALSE)
