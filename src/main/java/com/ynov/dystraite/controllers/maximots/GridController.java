@@ -26,18 +26,9 @@ public class GridController {
     @Autowired
     GridService gridService;
 
-    @RequestMapping(value = "/getGrid", method = RequestMethod.POST, produces = MediaType.APPLICATION_JSON_VALUE)
-    public SortieGetGrid getGrid(@RequestBody EntreeGetGrid entree, Authentication authentication) throws NoSuchAlgorithmException {
-        /*List<String> words = new ArrayList<>(
-                Arrays.asList(
-                        "Chat",
-                        "Yope",
-                        "chaud"
-                )
-        );
-        Grid grid = new Grid("Nimp", words, 5);
-        gridService.populate(grid);*/
-        return gridService.createBoard(entree, authentication);
+    @RequestMapping(value = "/getGrid", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    public SortieGetGrid getGrid(Authentication authentication) throws NoSuchAlgorithmException {
+        return gridService.createBoard(authentication);
     }
 
     @RequestMapping(value = "/verifyResponse", method = RequestMethod.POST, produces = MediaType.APPLICATION_JSON_VALUE)

@@ -13,4 +13,5 @@ public class SortieGetGrid {
     private List<String> wordsHash;
     private long gridId;
     private String gridLabel;
+    private int gridSize;
 }

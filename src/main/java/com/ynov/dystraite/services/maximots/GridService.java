@@ -5,7 +5,6 @@ import com.ynov.dystraite.entities.maximots.Grid;
 import com.ynov.dystraite.entities.maximots.UserGrid;
 import com.ynov.dystraite.enums.maximots.Direction;
 import com.ynov.dystraite.enums.maximots.Sens;
-import com.ynov.dystraite.models.maximots.EntreeGetGrid;
 import com.ynov.dystraite.models.maximots.EntreeVerifyResponse;
 import com.ynov.dystraite.models.maximots.SortieGetGrid;
 import com.ynov.dystraite.models.maximots.SortieVerifyResponse;
@@ -42,15 +41,14 @@ public class GridService {
     }
 
     private final Random rand = new Random();
-    int boardSize = 0;
     char[][] boardArray;
 
-    public SortieGetGrid createBoard(EntreeGetGrid entreeGetGrid, Authentication authentication) throws NoSuchAlgorithmException {
-
-        boardSize = entreeGetGrid.difficulty;
-        boardArray = new char[boardSize][boardSize];
+    public SortieGetGrid createBoard(Authentication authentication) throws NoSuchAlgorithmException {
 
         Users user = usersService.getById(authentication.getName());
+
+        //LocalDate ageLocalDate = LocalDate.now().minus( user.getBirthdate());
+        //int difficulty = ageLocalDate.getYear();
 
         //récupération des grilles déjà réalisées et en cours de réalisation
         Set<UserGrid> gridInProgressOrDoneList = userGridRepository.findByUserId(user.getId());
@@ -66,7 +64,7 @@ public class GridService {
                 List<String> wordsFound = Arrays.asList(userGrid.getFoundWords().split(","));
                 List<String> wordsToInsert = this.getWordsToInsert(gridOptional.get(), wordsFound);
 
-                return generateBoard(wordsToInsert, gridOptional.get().getId(), gridOptional.get().getLabel());
+                return generateBoard(wordsToInsert, gridOptional.get());
             }
         }else{
             //récupération des liste déjà réalisées
@@ -77,15 +75,13 @@ public class GridService {
 
             Grid grid;
             if (gridIdDone.size() > 0) {
-                grid = gridRepository.findFirstByDifficultyAndIdNotIn(entreeGetGrid.difficulty, gridIdDone);
+                grid = gridRepository.findFirstByIdNotInOrderByDifficultyAsc(gridIdDone);
             }else{
-                grid = gridRepository.findFirstByDifficulty(entreeGetGrid.difficulty);
+                grid = gridRepository.findFirstByOrderByDifficultyAsc();
             }
 
-            System.out.println(grid);
-
-            if (grid != null){
-                return generateBoard(grid.getWords(), grid.getId(), grid.getLabel());
+            if (grid != null) {
+                return generateBoard(grid.getWords(), grid);
             }
         }
 
@@ -110,22 +106,23 @@ public class GridService {
         return wordsToInsert;
     }
 
-    private SortieGetGrid generateBoard(List<String> wordList, long gridId, String gridLabel) throws NoSuchAlgorithmException {
+    private SortieGetGrid generateBoard(List<String> wordList, Grid grid) throws NoSuchAlgorithmException {
         final MessageDigest digest = MessageDigest.getInstance("SHA-256");
-        boardArray = new char[boardSize][boardSize];
+
+        boardArray = new char[grid.getDifficulty()][grid.getDifficulty()];
+
         List<String> wordsInsertedHash = new ArrayList<>();
 
         for (String word : wordList) {
 
-            if (word.length() < boardSize) {
+            if (word.length() <= boardArray.length) {
                 Direction direction = Direction.Normal; //Direction.getRandom(); //normal - reverse
-                Sens sens = Sens.getRandom(); //horiz - vert - diag_b_d - diag_h_d
 
                 String mot = word;
                 /*if (direction.equals(Direction.Inverse)) {
                     mot = new StringBuilder(mot).reverse().toString();
                 }*/
-                boolean isWordInsertedSuccessfully = insertWord(sens, mot.toUpperCase());
+                boolean isWordInsertedSuccessfully = insertWord(mot.toUpperCase());
 
                 if (isWordInsertedSuccessfully) {
                     final byte[] hashbytes = digest.digest(word.toUpperCase().getBytes(StandardCharsets.UTF_8));
@@ -157,10 +154,10 @@ public class GridService {
                 }
             }
         }
-        return new SortieGetGrid(board, wordsInsertedHash, gridId, gridLabel);
+        return new SortieGetGrid(board, wordsInsertedHash, grid.getId(), grid.getLabel(), grid.getDifficulty());
     }
 
-    private boolean insertWord(Sens sens, String word){
+    private boolean insertWord(String word){
 
         int x = -1;
         int y = -1;
@@ -168,15 +165,22 @@ public class GridService {
         int nbFetch = 0;
 
         boolean isInsertWordSuccessfully = this.tryCrossWords(word);
+
+        System.out.println(word + "tryCrossWords : " + isInsertWordSuccessfully);
         if (isInsertWordSuccessfully){
             return true;
         }else {
+            Sens sens;
             do{
+                sens = Sens.getRandom();
+                //System.out.println(sens.toString());
                 if (sens.equals(Sens.Horizontal)) {
-                    x = rand.nextInt(boardArray.length - word.length());
+                    x = boardArray.length - word.length();
+                    if (x != 0 ) x = rand.nextInt(y);
                     y = rand.nextInt(boardArray.length);
                     int nextX = x;
                     int nextY = y;
+                    System.out.println(nextX + " : " + nextY);
                     for (char letter : word.toCharArray()) {
                         if (nextX >= boardArray.length || nextX < 0 || (boardArray[nextX][nextY] != '\0' && boardArray[nextX][nextY] != letter)) {
                             canInsertInBord = false;
@@ -186,9 +190,11 @@ public class GridService {
                     }
                 }else if (sens.equals(Sens.Vertical)) {
                     x = rand.nextInt(boardArray.length);
-                    y = rand.nextInt(boardArray.length - word.length());
+                    y = boardArray.length - word.length();
+                    if (y != 0 ) y = rand.nextInt(y);
                     int nextX = x;
                     int nextY = y;
+                    //System.out.println(nextX + " : " + nextY);
                     for (char letter : word.toCharArray()) {
                         if (nextY >= boardArray.length || nextY < 0 || (boardArray[nextX][nextY] != '\0' && boardArray[nextX][nextY] != letter)) {
                             canInsertInBord = false;
@@ -228,6 +234,8 @@ public class GridService {
                     }
                 }
             }while (!canInsertInBord && nbFetch++ < 20);
+
+            //System.out.println(canInsertInBord + " " + nbFetch);
 
             if (canInsertInBord && x >= 0 && y >= 0){
                 if (sens.equals(Sens.Horizontal)) {
@@ -474,8 +482,7 @@ public class GridService {
                 isFinish = true;
             } else {
                 //try create new board
-                boardSize = grid.get().getDifficulty();
-                sortieGetGrid = generateBoard(wordsToInsert, grid.get().getId(), grid.get().getLabel());
+                sortieGetGrid = generateBoard(wordsToInsert, grid.get());
                 if (sortieGetGrid.getWordsHash().size() < 2) { //si moins de 1 mots dans la grille : win
                     isFinish = true;
                 } else {

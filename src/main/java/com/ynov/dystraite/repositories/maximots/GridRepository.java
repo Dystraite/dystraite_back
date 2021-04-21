@@ -8,7 +8,7 @@ import java.util.List;
 
 @Repository
 public interface GridRepository extends JpaRepository<Grid, Long> {
-    Grid findFirstByDifficultyAndIdNotIn(int difficulty, List<Long> gridList);
+    Grid findFirstByIdNotInOrderByDifficultyAsc(List<Long> gridList);
 
-    Grid findFirstByDifficulty(int difficulty);
+    Grid findFirstByOrderByDifficultyAsc();
 }
