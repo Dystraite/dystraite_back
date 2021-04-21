@@ -176,7 +176,7 @@ public class GridService {
                 //System.out.println(sens.toString());
                 if (sens.equals(Sens.Horizontal)) {
                     x = boardArray.length - word.length();
-                    if (x != 0 ) x = rand.nextInt(y);
+                    if (x != 0 ) x = rand.nextInt(x);
                     y = rand.nextInt(boardArray.length);
                     int nextX = x;
                     int nextY = y;
