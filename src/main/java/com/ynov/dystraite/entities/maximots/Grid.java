@@ -16,8 +16,8 @@ public class Grid {
     private long id;
 
     @NonNull
-    @Column(name = "libelle")
-    private String libelle;
+    @Column(name = "label")
+    private String label;
 
     @NonNull
     @Column(name = "words")

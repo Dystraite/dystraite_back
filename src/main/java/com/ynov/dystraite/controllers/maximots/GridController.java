@@ -28,6 +28,15 @@ public class GridController {
 
     @RequestMapping(value = "/getGrid", method = RequestMethod.POST, produces = MediaType.APPLICATION_JSON_VALUE)
     public SortieGetGrid getGrid(@RequestBody EntreeGetGrid entree, Authentication authentication) throws NoSuchAlgorithmException {
+        /*List<String> words = new ArrayList<>(
+                Arrays.asList(
+                        "Chat",
+                        "Yope",
+                        "chaud"
+                )
+        );
+        Grid grid = new Grid("Nimp", words, 5);
+        gridService.populate(grid);*/
         return gridService.createBoard(entree, authentication);
     }
 

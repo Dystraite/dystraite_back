@@ -12,4 +12,5 @@ public class SortieGetGrid {
     private ArrayList<Character> grid;
     private List<String> wordsHash;
     private long gridId;
+    private String gridLabel;
 }

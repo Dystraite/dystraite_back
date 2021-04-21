@@ -36,16 +36,19 @@ public class GridService {
     UsersService usersService;
 
     public void populate(Grid grid){
-        if (grid.getLibelle() != null && grid.getLibelle().trim().length() > 0) {
+        if (grid.getLabel() != null && grid.getLabel().trim().length() > 0) {
             gridRepository.save(grid);
         }
     }
 
     private final Random rand = new Random();
-    int boardSize = 8;
-    char[][] boardArray = new char[boardSize][boardSize];
+    int boardSize = 0;
+    char[][] boardArray;
 
     public SortieGetGrid createBoard(EntreeGetGrid entreeGetGrid, Authentication authentication) throws NoSuchAlgorithmException {
+
+        boardSize = entreeGetGrid.difficulty;
+        boardArray = new char[boardSize][boardSize];
 
         Users user = usersService.getById(authentication.getName());
 
@@ -63,7 +66,7 @@ public class GridService {
                 List<String> wordsFound = Arrays.asList(userGrid.getFoundWords().split(","));
                 List<String> wordsToInsert = this.getWordsToInsert(gridOptional.get(), wordsFound);
 
-                return generateBoard(wordsToInsert, gridOptional.get().getId());
+                return generateBoard(wordsToInsert, gridOptional.get().getId(), gridOptional.get().getLabel());
             }
         }else{
             //récupération des liste déjà réalisées
@@ -82,7 +85,7 @@ public class GridService {
             System.out.println(grid);
 
             if (grid != null){
-                return generateBoard(grid.getWords(), grid.getId());
+                return generateBoard(grid.getWords(), grid.getId(), grid.getLabel());
             }
         }
 
@@ -107,7 +110,7 @@ public class GridService {
         return wordsToInsert;
     }
 
-    private SortieGetGrid generateBoard(List<String> wordList, long gridId) throws NoSuchAlgorithmException {
+    private SortieGetGrid generateBoard(List<String> wordList, long gridId, String gridLabel) throws NoSuchAlgorithmException {
         final MessageDigest digest = MessageDigest.getInstance("SHA-256");
         boardArray = new char[boardSize][boardSize];
         List<String> wordsInsertedHash = new ArrayList<>();
@@ -154,7 +157,7 @@ public class GridService {
                 }
             }
         }
-        return new SortieGetGrid(board, wordsInsertedHash, gridId);
+        return new SortieGetGrid(board, wordsInsertedHash, gridId, gridLabel);
     }
 
     private boolean insertWord(Sens sens, String word){
@@ -471,7 +474,8 @@ public class GridService {
                 isFinish = true;
             } else {
                 //try create new board
-                sortieGetGrid = generateBoard(wordsToInsert, grid.get().getId());
+                boardSize = grid.get().getDifficulty();
+                sortieGetGrid = generateBoard(wordsToInsert, grid.get().getId(), grid.get().getLabel());
                 if (sortieGetGrid.getWordsHash().size() < 2) { //si moins de 1 mots dans la grille : win
                     isFinish = true;
                 } else {
