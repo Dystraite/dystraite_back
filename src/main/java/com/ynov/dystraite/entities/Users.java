@@ -6,6 +6,8 @@ import java.util.List;
 
 import javax.persistence.*;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.ynov.dystraite.entities.maximots.UserGrid;
 import org.hibernate.annotations.LazyCollection;
 import org.hibernate.annotations.LazyCollectionOption;
 
@@ -68,12 +70,18 @@ public class Users implements Serializable {
 	private List<Tips> likedTips;
 	
 	@LazyCollection(LazyCollectionOption.FALSE)
-	@OneToMany(mappedBy="owner")
+	@OneToMany(mappedBy="owner", cascade = CascadeType.ALL)
     private List<Tips> tips;
 	
 	@OneToOne
 	@JoinColumn(name = "speech_therapist", referencedColumnName = "email")
 	private Users speechTherapist;
+
+	@LazyCollection(LazyCollectionOption.FALSE)
+	@JsonIgnore
+	@OneToMany(mappedBy = "user")
+	@Column(name = "user_grid_id")
+	private List<UserGrid> userGrids;
 
 	public Users(String email, String lastname, String firstname, String username, Date birthdate, long latitude, long longitude,
 			String city, int zipCode, String password, String role, String profilePicture, Users speechTherapist) {
