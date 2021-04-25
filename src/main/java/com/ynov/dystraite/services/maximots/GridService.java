@@ -483,9 +483,11 @@ public class GridService {
             } else {
                 //try create new board
                 sortieGetGrid = generateBoard(wordsToInsert, grid.get());
-                if (sortieGetGrid.getWordsHash().size() < 2) { //si moins de 1 mots dans la grille : win
+                if (sortieGetGrid.getWordsHash().size() == 0) { //si moins de 1 mots dans la grille : win
                     isFinish = true;
-                } else {
+                }else if (sortieGetGrid.getWordsHash().size() == 1 && wordsToInsert.size() > 1) {
+                	isFinish = true;
+                }else {
                     userGrid.setFoundWords(String.join(",", wordsFound));
                     isFinish = false;
                 }
